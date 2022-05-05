@@ -12,7 +12,7 @@ import java.io.IOException;
 public class FirebaseService {
 
 	@PostConstruct
-	public void initializeFirebase() throws IOException {
+	public void initializeFirebase() {
 		try {
 			FirebaseOptions options = new FirebaseOptions.Builder()
 					.setCredentials(GoogleCredentials.getApplicationDefault())
