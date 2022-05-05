@@ -22,17 +22,11 @@ public class UnitController {
 
 	@GetMapping()
 	public JsonNode[] getUnits(@RequestHeader("Authorization") String token) {
-		if (userService.isAdmin(userService.getUserIdByToken(token))) {
-			return unitService.getUnits();
-		}
-		return null;
+		return unitService.getUnits();
 	}
 
 	@GetMapping("/{id}")
 	public JsonNode getUnitById(@PathVariable String id, @RequestHeader("Authorization") String token) {
-		if (userService.isAdmin(userService.getUserIdByToken(token))) {
-			return unitService.getUnitsById(id);
-		}
-		return null;
+		return unitService.getUnitsById(id);
 	}
 }
