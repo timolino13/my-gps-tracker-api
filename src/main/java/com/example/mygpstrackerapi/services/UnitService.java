@@ -1,8 +1,7 @@
 package com.example.mygpstrackerapi.services;
 
+import com.example.mygpstrackerapi.components.GpsGateComponent;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,27 +10,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
-import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 
 @Service
 @Slf4j
 public class UnitService {
-	@Autowired
-	private UserService userService;
-
-	String token = "";
+	GpsGateComponent gpsGateComponent;
 
 	@Value("${gpsgate.url}")
 	private String gpsGateUrl;
-
-	@Value("${gpsgate.username}")
-	private String username;
-
-	@Value("${gpsgate.password}")
-	private String password;
 
 	@Value("${gpsgate.unitRoleId}")
 	private int unitRoleId;
@@ -39,17 +27,17 @@ public class UnitService {
 	@Value("${gpsgate.applicationId}")
 	private int applicationId;
 
-	@PostConstruct
-	public void init() {
-		getAuthToken();
+	@Autowired
+	public UnitService(GpsGateComponent gpsGateComponent) {
+		this.gpsGateComponent = gpsGateComponent;
+	}
+
+	private String getToken() {
+		return gpsGateComponent.getToken();
 	}
 
 	// Gets the users that are assigned to the unit role
 	public ResponseEntity<JsonNode[]> getUnits() {
-		if (token.equals("")) {
-			getAuthToken();
-		}
-
 		ResponseEntity<JsonNode> res = getRoleById(unitRoleId);
 		if (res.getStatusCode() == HttpStatus.OK) {
 			JsonNode role = res.getBody();
@@ -62,7 +50,7 @@ public class UnitService {
 			if (usersIds != null && usersIds.isArray()) {
 				ArrayList<JsonNode> users = new ArrayList<>();
 				for (int i = 0; i < usersIds.size(); i++) {
-					JsonNode user = getUnitsById(usersIds.get(i).asInt()).getBody();
+					JsonNode user = getUnitById(usersIds.get(i).asInt()).getBody();
 					if (user != null) {
 						users.add(user);
 					}
@@ -78,15 +66,11 @@ public class UnitService {
 
 	// Gets a role containing the usersIds assigned to that role
 	private ResponseEntity<JsonNode> getRoleById(int roleId) {
-		if (token.equals("")) {
-			getAuthToken();
-		}
-
 		WebClient client = WebClient.create(gpsGateUrl);
 
 		ClientResponse clientResponse = client.get()
 				.uri("/applications/" + applicationId + "/roles/" + roleId)
-				.header("Authorization", token)
+				.header("Authorization", getToken())
 				.exchange()
 				.block();
 
@@ -97,15 +81,11 @@ public class UnitService {
 	}
 
 	public ResponseEntity<JsonNode[]> getUnitsByTag(String tag) {
-		if (token.equals("")) {
-			getAuthToken();
-		}
-
 		WebClient client = WebClient.create(gpsGateUrl);
 
 		JsonNode[] res = client.get()
 				.uri("/applications/" + applicationId + "/tags/" + tag + "/users")
-				.header("Authorization", token)
+				.header("Authorization", getToken())
 				.retrieve()
 				.bodyToMono(JsonNode[].class)
 				.block();
@@ -117,16 +97,12 @@ public class UnitService {
 	}
 
 	// Gets the user with the given id
-	public ResponseEntity<JsonNode> getUnitsById(int id) {
-		if (token.equals("")) {
-			getAuthToken();
-		}
-
+	public ResponseEntity<JsonNode> getUnitById(int id) {
 		WebClient client = WebClient.create(gpsGateUrl);
 
 		ClientResponse clientResponse = client.get()
 				.uri("/applications/" + applicationId + "/users/" + id)
-				.header("Authorization", token)
+				.header("Authorization", getToken())
 				.exchange()
 				.block();
 
@@ -134,26 +110,5 @@ public class UnitService {
 			return clientResponse.toEntity(JsonNode.class).block();
 		}
 		return ResponseEntity.noContent().build();
-	}
-
-	private void getAuthToken() {
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode json = mapper.createObjectNode();
-
-		json.put("username", username);
-		json.put("password", password);
-
-		WebClient client = WebClient.create(gpsGateUrl);
-		ObjectNode res = client.post()
-				.uri("/applications/+" + applicationId + "/tokens")
-				.body(Mono.just(json), ObjectNode.class)
-				.retrieve()
-				.bodyToMono(ObjectNode.class)
-				.block();
-
-		assert res != null;
-		log.info(res.toString());
-
-		token = res.get("token").asText();
 	}
 }

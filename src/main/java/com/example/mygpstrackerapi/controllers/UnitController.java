@@ -30,10 +30,10 @@ public class UnitController {
 		return ResponseEntity.status(401).build();
 	}
 
-	@GetMapping("/{id}")
-	public ResponseEntity<JsonNode> getUnitById(@PathVariable int id, @RequestHeader("Authorization") String token) {
+	@GetMapping("/{unitId}")
+	public ResponseEntity<JsonNode> getUnitById(@RequestHeader("Authorization") String token, @PathVariable int unitId) {
 		if (userService.isVerified(userService.getUserIdByToken(token))) {
-			return unitService.getUnitsById(id);
+			return unitService.getUnitById(unitId);
 		}
 		return ResponseEntity.status(401).build();
 	}
