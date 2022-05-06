@@ -51,4 +51,13 @@ public class UserService {
 		}
 		return false;
 	}
+
+	public boolean isVerified(String id) {
+		FirebaseUsers user = getUser(id);
+
+		if (user != null) {
+			return user.isVerified();
+		}
+		return false;
+	}
 }

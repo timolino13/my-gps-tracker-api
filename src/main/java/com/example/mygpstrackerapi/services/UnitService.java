@@ -6,7 +6,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -41,74 +44,96 @@ public class UnitService {
 		getAuthToken();
 	}
 
-	public JsonNode[] getUnits() {
+	// Gets the users that are assigned to the unit role
+	public ResponseEntity<JsonNode[]> getUnits() {
 		if (token.equals("")) {
 			getAuthToken();
 		}
 
-		JsonNode role = getRoleById(unitRoleId);
+		ResponseEntity<JsonNode> res = getRoleById(unitRoleId);
+		if (res.getStatusCode() == HttpStatus.OK) {
+			JsonNode role = res.getBody();
 
-		assert role != null;
-		JsonNode usersIds = role.get("usersIds");
-
-		if (usersIds != null && usersIds.isArray()) {
-			ArrayList<JsonNode> users = new ArrayList<>();
-			for (int i = 0; i < usersIds.size(); i++) {
-				users.add(getUnitsById(usersIds.get(i).asText()));
+			if (role == null) {
+				return ResponseEntity.noContent().build();
 			}
+			JsonNode usersIds = role.get("usersIds");
 
-			return users.toArray(new JsonNode[0]);
+			if (usersIds != null && usersIds.isArray()) {
+				ArrayList<JsonNode> users = new ArrayList<>();
+				for (int i = 0; i < usersIds.size(); i++) {
+					JsonNode user = getUnitsById(usersIds.get(i).asInt()).getBody();
+					if (user != null) {
+						users.add(user);
+					}
+				}
+				if (users.size() > 0) {
+					return ResponseEntity.ok(users.toArray(new JsonNode[0]));
+				}
+			}
 		}
 
-		return null;
+		return ResponseEntity.noContent().build();
 	}
 
-	private JsonNode getRoleById(int roleId) {
+	// Gets a role containing the usersIds assigned to that role
+	private ResponseEntity<JsonNode> getRoleById(int roleId) {
 		if (token.equals("")) {
 			getAuthToken();
 		}
 
 		WebClient client = WebClient.create(gpsGateUrl);
 
-		JsonNode res = client.get()
+		ClientResponse clientResponse = client.get()
 				.uri("/applications/" + applicationId + "/roles/" + roleId)
 				.header("Authorization", token)
-				.retrieve()
-				.bodyToMono(JsonNode.class)
+				.exchange()
 				.block();
 
-		assert res != null;
-		return res;
+		if (clientResponse != null) {
+			return clientResponse.toEntity(JsonNode.class).block();
+		}
+		return ResponseEntity.noContent().build();
 	}
 
-	public JsonNode[] getUnitsByTag(String tag) {
+	public ResponseEntity<JsonNode[]> getUnitsByTag(String tag) {
 		if (token.equals("")) {
 			getAuthToken();
 		}
 
 		WebClient client = WebClient.create(gpsGateUrl);
 
-		return client.get()
+		JsonNode[] res = client.get()
 				.uri("/applications/" + applicationId + "/tags/" + tag + "/users")
 				.header("Authorization", token)
 				.retrieve()
 				.bodyToMono(JsonNode[].class)
 				.block();
+
+		if (res != null && res.length > 0) {
+			return ResponseEntity.ok(res);
+		}
+		return ResponseEntity.noContent().build();
 	}
 
-	public JsonNode getUnitsById(String id) {
+	// Gets the user with the given id
+	public ResponseEntity<JsonNode> getUnitsById(int id) {
 		if (token.equals("")) {
 			getAuthToken();
 		}
 
 		WebClient client = WebClient.create(gpsGateUrl);
 
-		return client.get()
+		ClientResponse clientResponse = client.get()
 				.uri("/applications/" + applicationId + "/users/" + id)
 				.header("Authorization", token)
-				.retrieve()
-				.bodyToMono(JsonNode.class)
+				.exchange()
 				.block();
+
+		if (clientResponse != null) {
+			return clientResponse.toEntity(JsonNode.class).block();
+		}
+		return ResponseEntity.noContent().build();
 	}
 
 	private void getAuthToken() {

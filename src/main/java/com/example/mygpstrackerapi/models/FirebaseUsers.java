@@ -12,6 +12,7 @@ public class FirebaseUsers {
 	private String id;
 	private String email;
 	private FirebaseRoles roles;
+	private boolean verified;
 
 	public boolean isAdmin() {
 		if (roles != null) {

@@ -4,6 +4,7 @@ import com.example.mygpstrackerapi.services.UnitService;
 import com.example.mygpstrackerapi.services.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,12 +22,19 @@ public class UnitController {
 	}
 
 	@GetMapping()
-	public JsonNode[] getUnits(@RequestHeader("Authorization") String token) {
-		return unitService.getUnits();
+	public ResponseEntity<JsonNode[]> getUnits(@RequestHeader("Authorization") String token) {
+		String userId = userService.getUserIdByToken(token);
+		if (userService.isVerified(userId) && userService.isAdmin(userId)) {
+			return unitService.getUnits();
+		}
+		return ResponseEntity.status(401).build();
 	}
 
 	@GetMapping("/{id}")
-	public JsonNode getUnitById(@PathVariable String id, @RequestHeader("Authorization") String token) {
-		return unitService.getUnitsById(id);
+	public ResponseEntity<JsonNode> getUnitById(@PathVariable int id, @RequestHeader("Authorization") String token) {
+		if (userService.isVerified(userService.getUserIdByToken(token))) {
+			return unitService.getUnitsById(id);
+		}
+		return ResponseEntity.status(401).build();
 	}
 }
