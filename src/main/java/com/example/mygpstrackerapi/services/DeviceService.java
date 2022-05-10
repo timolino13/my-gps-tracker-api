@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -82,14 +83,19 @@ public class DeviceService {
 		return ResponseEntity.noContent().build();
 	}
 
-	private ResponseEntity<JsonNode> removeAllDevicesFromUnit(int unitId) {
+	public ResponseEntity<JsonNode> removeAllDevicesFromUnit(int unitId) {
 		ArrayNode devices = getDevicesByUnitId(unitId).getBody();
 		if (devices == null || devices.size() == 0) {
 			return ResponseEntity.badRequest().body(new TextNode("Unit does not have a device"));
 		}
+
 		for (JsonNode device : devices) {
-			removeDeviceFromUnit(unitId, device.get("id").asInt());
+			ResponseEntity<JsonNode> res = removeDeviceFromUnit(unitId, device.get("id").asInt());
+			if (res.getStatusCode() != HttpStatus.OK) {
+				return res;
+			}
 		}
+
 		return ResponseEntity.ok(new TextNode("Removed all devices from unit"));
 	}
 

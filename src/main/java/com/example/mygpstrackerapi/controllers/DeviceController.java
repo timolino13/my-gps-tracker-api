@@ -49,6 +49,15 @@ public class DeviceController {
 		return ResponseEntity.status(401).build();
 	}
 
+	@DeleteMapping("/{unitId}/devices")
+	public ResponseEntity<JsonNode> removeAllDevicesForUnit(@RequestHeader("Authorization") String token, @PathVariable int unitId) {
+		String userId = userService.getUserIdByToken(token);
+		if (userService.isVerified(userId) && userService.isAdmin(userId)) {
+			return deviceService.removeAllDevicesFromUnit(unitId);
+		}
+		return ResponseEntity.status(401).build();
+	}
+
 	@DeleteMapping("/{unitId}/devices/{deviceId}")
 	public ResponseEntity<JsonNode> removeDeviceFromUnit(@RequestHeader("Authorization") String token, @PathVariable int unitId, @PathVariable int deviceId) {
 		String userId = userService.getUserIdByToken(token);
