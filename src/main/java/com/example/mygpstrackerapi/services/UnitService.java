@@ -75,23 +75,7 @@ public class UnitService {
 				.block();
 
 		if (clientResponse != null) {
-			return clientResponse.toEntity(JsonNode.class).block();
-		}
-		return ResponseEntity.noContent().build();
-	}
-
-	public ResponseEntity<JsonNode[]> getUnitsByTag(String tag) {
-		WebClient client = WebClient.create(gpsGateUrl);
-
-		JsonNode[] res = client.get()
-				.uri("/applications/" + applicationId + "/tags/" + tag + "/users")
-				.header("Authorization", getToken())
-				.retrieve()
-				.bodyToMono(JsonNode[].class)
-				.block();
-
-		if (res != null && res.length > 0) {
-			return ResponseEntity.ok(res);
+			return ResponseEntity.status(clientResponse.statusCode()).body(clientResponse.bodyToMono(JsonNode.class).block());
 		}
 		return ResponseEntity.noContent().build();
 	}
@@ -107,7 +91,8 @@ public class UnitService {
 				.block();
 
 		if (clientResponse != null) {
-			return clientResponse.toEntity(JsonNode.class).block();
+			log.info("Headers: " + clientResponse.headers());
+			return ResponseEntity.status(clientResponse.statusCode()).body(clientResponse.bodyToMono(JsonNode.class).block());
 		}
 		return ResponseEntity.noContent().build();
 	}

@@ -24,6 +24,7 @@ public class UnitController {
 	@GetMapping()
 	public ResponseEntity<JsonNode[]> getUnits(@RequestHeader("Authorization") String token) {
 		String userId = userService.getUserIdByToken(token);
+
 		if (userService.isVerified(userId) && userService.isAdmin(userId)) {
 			return unitService.getUnits();
 		}

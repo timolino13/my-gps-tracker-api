@@ -44,7 +44,7 @@ public class DeviceService {
 				.block();
 
 		if (clientResponse != null) {
-			return clientResponse.toEntity(ArrayNode.class).block();
+			return ResponseEntity.status(clientResponse.statusCode()).body(clientResponse.bodyToMono(ArrayNode.class).block());
 		}
 		return ResponseEntity.noContent().build();
 	}
@@ -59,16 +59,13 @@ public class DeviceService {
 				.block();
 
 		if (clientResponse != null) {
-			return clientResponse.toEntity(JsonNode.class).block();
+			return ResponseEntity.status(clientResponse.statusCode()).body(clientResponse.bodyToMono(JsonNode.class).block());
 		}
 		return ResponseEntity.noContent().build();
 	}
 
 	public ResponseEntity<JsonNode> createDeviceForUnit(int unitId, JsonNode device) {
-		ArrayNode devices = getDevicesByUnitId(unitId).getBody();
-		if (devices != null && devices.size() > 0) {
-			return ResponseEntity.badRequest().body(new TextNode("Unit already has a device"));
-		}
+		removeAllDevicesFromUnit(unitId);
 
 		WebClient client = WebClient.create(gpsGateUrl);
 
@@ -80,9 +77,20 @@ public class DeviceService {
 				.block();
 
 		if (clientResponse != null) {
-			return clientResponse.toEntity(JsonNode.class).block();
+			return ResponseEntity.status(clientResponse.statusCode()).body(clientResponse.bodyToMono(JsonNode.class).block());
 		}
 		return ResponseEntity.noContent().build();
+	}
+
+	private ResponseEntity<JsonNode> removeAllDevicesFromUnit(int unitId) {
+		ArrayNode devices = getDevicesByUnitId(unitId).getBody();
+		if (devices == null || devices.size() == 0) {
+			return ResponseEntity.badRequest().body(new TextNode("Unit does not have a device"));
+		}
+		for (JsonNode device : devices) {
+			removeDeviceFromUnit(unitId, device.get("id").asInt());
+		}
+		return ResponseEntity.ok(new TextNode("Removed all devices from unit"));
 	}
 
 	public ResponseEntity<JsonNode> removeDeviceFromUnit(int unitId, int deviceId) {
@@ -95,7 +103,7 @@ public class DeviceService {
 				.block();
 
 		if (clientResponse != null) {
-			return clientResponse.toEntity(JsonNode.class).block();
+			return ResponseEntity.status(clientResponse.statusCode()).body(clientResponse.bodyToMono(JsonNode.class).block());
 		}
 		return ResponseEntity.noContent().build();
 	}
