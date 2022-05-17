@@ -86,7 +86,7 @@ public class DeviceService {
 	public ResponseEntity<JsonNode> removeAllDevicesFromUnit(int unitId) {
 		ArrayNode devices = getDevicesByUnitId(unitId).getBody();
 		if (devices == null || devices.size() == 0) {
-			return ResponseEntity.badRequest().body(new TextNode("Unit does not have a device"));
+			return ResponseEntity.ok().body(new TextNode("Unit does not have a device"));
 		}
 
 		for (JsonNode device : devices) {
